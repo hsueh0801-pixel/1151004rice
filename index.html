@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>美味便當專賣店 - 線上點餐</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+  <!-- 頂部導航 -->
+  <header class="bg-amber-600 text-white shadow sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <h1 class="text-xl font-bold flex items-center gap-2">
+        <i class="fa-solid fa-bowl-rice"></i> 美味便當專賣店
+      </h1>
+      <div class="flex items-center gap-3">
+        <a href="admin.html" class="text-xs bg-amber-700 hover:bg-amber-800 text-white px-3 py-1.5 rounded-lg transition">
+          <i class="fa-solid fa-kitchen-set"></i> 後台廚房
+        </a>
+        <button onclick="toggleCartModal()" class="relative bg-white text-amber-600 px-3 py-1.5 rounded-lg font-medium shadow hover:bg-amber-50">
+          <i class="fa-solid fa-cart-shopping"></i> 購物車
+          <span id="cartCount" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 菜單分類篩選 -->
+  <div class="max-w-6xl mx-auto px-4 py-4 flex gap-2 overflow-x-auto">
+    <button onclick="filterCategory('全部')" class="cat-btn bg-amber-600 text-white px-4 py-1.5 rounded-full text-sm font-medium">全部</button>
+    <button onclick="filterCategory('燒烤便當')" class="cat-btn bg-white text-gray-600 border px-4 py-1.5 rounded-full text-sm font-medium">燒烤便當</button>
+    <button onclick="filterCategory('日式炸物')" class="cat-btn bg-white text-gray-600 border px-4 py-1.5 rounded-full text-sm font-medium">日式炸物</button>
+    <button onclick="filterCategory('咖哩系列')" class="cat-btn bg-white text-gray-600 border px-4 py-1.5 rounded-full text-sm font-medium">咖哩系列</button>
+  </div>
+
+  <!-- 便當列表 -->
+  <main class="max-w-6xl mx-auto px-4 pb-20">
+    <div id="menuGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <!-- 餐點卡片由 JavaScript 動態生成 -->
+    </div>
+  </main>
+
+  <!-- 購物車彈窗 Modal -->
+  <div id="cartModal" class="fixed inset-0 bg-black/50 z-50 hidden flex justify-end">
+    <div class="bg-white w-full max-w-md h-full flex flex-col shadow-xl animate-slide-in">
+      <div class="p-4 border-b flex justify-between items-center bg-gray-100">
+        <h2 class="font-bold text-lg"><i class="fa-solid fa-list-check"></i> 點餐清單</h2>
+        <button onclick="toggleCartModal()" class="text-gray-500 hover:text-black"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+
+      <div id="cartItems" class="flex-1 overflow-y-auto p-4 space-y-3">
+        <!-- 購物車商品 -->
+      </div>
+
+      <div class="p-4 border-t bg-gray-50 space-y-3">
+        <div class="flex justify-between font-bold text-lg">
+          <span>總金額</span>
+          <span class="text-amber-600">NT$ <span id="cartTotal">0</span></span>
+        </div>
+        
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">訂購人姓名 / 稱呼</label>
+          <input id="custName" type="text" class="w-full border rounded-lg p-2 text-sm" placeholder="例如：陳先生">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">聯絡電話</label>
+          <input id="custPhone" type="tel" class="w-full border rounded-lg p-2 text-sm" placeholder="例如：0912345678">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">備註需求 (如飯少、加辣等)</label>
+          <input id="custNote" type="text" class="w-full border rounded-lg p-2 text-sm" placeholder="若無可不填">
+        </div>
+
+        <button onclick="submitOrder()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-lg shadow transition">
+          確認送出訂單
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 依據圖片擷取的便當菜單資料
+    const menuData = [
+      { id: "B01", name: "烤香腸飯", price: 80, cat: "燒烤便當", rec: false, img: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop" },
+      { id: "B02", name: "燒烤雞腿飯", price: 95, cat: "燒烤便當", rec: false, img: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop" },
+      { id: "B03", name: "烤松阪豬飯", price: 95, cat: "燒烤便當", rec: false, img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&auto=format&fit=crop" },
+      { id: "B04", name: "秘製燒烤豬排飯", price: 90, cat: "燒烤便當", rec: true, img: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&auto=format&fit=crop" },
+      { id: "B05", name: "日式豬排飯", price: 85, cat: "日式炸物", rec: false, img: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&auto=format&fit=crop" },
+      { id: "B06", name: "日式唐揚雞飯", price: 90, cat: "日式炸物", rec: false, img: "https://images.unsplash.com/photo-1562967914-608f82629710?w=500&auto=format&fit=crop" },
+      { id: "B07", name: "日式炸雞腿飯", price: 95, cat: "日式炸物", rec: true, img: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&auto=format&fit=crop" },
+      { id: "B08", name: "日式雞排飯", price: 80, cat: "日式炸物", rec: false, img: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=500&auto=format&fit=crop" },
+      { id: "B09", name: "日式燒肉飯", price: 85, cat: "燒烤便當", rec: false, img: "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=500&auto=format&fit=crop" },
+      { id: "B10", name: "唐揚雞咖哩飯", price: 95, cat: "咖哩系列", rec: false, img: "https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&auto=format&fit=crop" },
+      { id: "B11", name: "日式豬排咖哩飯", price: 95, cat: "咖哩系列", rec: false, img: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=500&auto=format&fit=crop" },
+      { id: "B12", name: "日式雞排咖哩飯", price: 90, cat: "咖哩系列", rec: false, img: "https://images.unsplash.com/photo-1600891964599-f61ba0e24092?w=500&auto=format&fit=crop" }
+    ];
+
+    let cart = [];
+
+    function renderMenu(items) {
+      const grid = document.getElementById("menuGrid");
+      grid.innerHTML = items.map(b => `
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+          <div class="relative aspect-square overflow-hidden bg-gray-100">
+            <img src="${b.img}" alt="${b.name}" class="w-full h-full object-cover">
+            ${b.rec ? '<span class="absolute top-2 right-2 bg-red-500 text-white text-[11px] px-2 py-0.5 rounded-full font-bold shadow">推薦</span>' : ''}
+          </div>
+          <div class="p-3 flex-1 flex flex-col justify-between">
+            <div>
+              <h3 class="font-bold text-sm md:text-base text-gray-800">${b.name}</h3>
+              <p class="text-amber-600 font-extrabold text-base md:text-lg mt-1">NT$ ${b.price}</p>
+            </div>
+            <button onclick="addToCart('${b.id}')" class="mt-3 w-full bg-amber-500 hover:bg-amber-600 text-white py-1.5 rounded-lg text-sm font-medium flex items-center justify-center gap-1">
+              <i class="fa-solid fa-plus"></i> 加入
+            </button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function filterCategory(category) {
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        if(btn.innerText === category) {
+          btn.className = "cat-btn bg-amber-600 text-white px-4 py-1.5 rounded-full text-sm font-medium";
+        } else {
+          btn.className = "cat-btn bg-white text-gray-600 border px-4 py-1.5 rounded-full text-sm font-medium";
+        }
+      });
+      if(category === "全部") renderMenu(menuData);
+      else renderMenu(menuData.filter(x => x.cat === category));
+    }
+
+    function addToCart(id) {
+      const item = menuData.find(m => m.id === id);
+      const existing = cart.find(c => c.id === id);
+      if(existing) {
+        existing.qty += 1;
+      } else {
+        cart.push({ ...item, qty: 1 });
+      }
+      updateCartUI();
+    }
+
+    function changeQty(id, delta) {
+      const item = cart.find(c => c.id === id);
+      if(!item) return;
+      item.qty += delta;
+      if(item.qty <= 0) {
+        cart = cart.filter(c => c.id !== id);
+      }
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      const totalCount = cart.reduce((sum, item) => sum + item.qty, 0);
+      const totalPrice = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
+      document.getElementById("cartCount").innerText = totalCount;
+      document.getElementById("cartTotal").innerText = totalPrice;
+
+      const cartItemsDiv = document.getElementById("cartItems");
+      if(cart.length === 0) {
+        cartItemsDiv.innerHTML = '<div class="text-center text-gray-400 py-10">購物車目前是空的</div>';
+        return;
+      }
+
+      cartItemsDiv.innerHTML = cart.map(item => `
+        <div class="flex justify-between items-center border-b pb-2">
+          <div>
+            <div class="font-medium text-sm">${item.name}</div>
+            <div class="text-xs text-gray-500">NT$ ${item.price}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="changeQty('${item.id}', -1)" class="w-6 h-6 rounded bg-gray-200 text-gray-700 flex items-center justify-center">-</button>
+            <span class="text-sm font-bold w-4 text-center">${item.qty}</span>
+            <button onclick="changeQty('${item.id}', 1)" class="w-6 h-6 rounded bg-gray-200 text-gray-700 flex items-center justify-center">+</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function toggleCartModal() {
+      const modal = document.getElementById("cartModal");
+      modal.classList.toggle("hidden");
+    }
+
+    function submitOrder() {
+      if(cart.length === 0) {
+        alert("購物車是空的，請先挑選便當！");
+        return;
+      }
+      const name = document.getElementById("custName").value.trim();
+      const phone = document.getElementById("custPhone").value.trim();
+      const note = document.getElementById("custNote").value.trim();
+
+      if(!name || !phone) {
+        alert("請填寫訂購人姓名與聯絡電話！");
+        return;
+      }
+
+      const order = {
+        orderId: "ORD-" + Date.now().toString().slice(-6),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        name,
+        phone,
+        note: note || "無",
+        items: cart,
+        total: cart.reduce((sum, item) => sum + item.qty * item.price, 0),
+        status: "待製作"
+      };
+
+      // 讀取既有訂單並追加
+      const orders = JSON.parse(localStorage.getItem("bento_orders") || "[]");
+      orders.unshift(order);
+      localStorage.setItem("bento_orders", JSON.stringify(orders));
+
+      // 清空購物車
+      cart = [];
+      updateCartUI();
+      toggleCartModal();
+      document.getElementById("custName").value = "";
+      document.getElementById("custPhone").value = "";
+      document.getElementById("custNote").value = "";
+
+      alert(`訂單送出成功！您的訂單編號為：${order.orderId}。\n後台廚房已即時收到訂單！`);
+    }
+
+    // 初始化渲染
+    renderMenu(menuData);
+    updateCartUI();
+  </script>
+</body>
+</html>
